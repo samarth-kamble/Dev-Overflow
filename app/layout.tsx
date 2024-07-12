@@ -31,6 +31,9 @@ export default function RootLayout({
       <body className={`${spaceGrotesk.className} custom-scrollbar`}>
         <ClerkProvider
           appearance={{
+            layout: {
+              logoImageUrl: "/assets/images/logo.png",
+            },
             elements: {
               formButtonPrimary: "primary-gradient",
               footerActionLink: "primary-text-gradient hover: text-primary-500",

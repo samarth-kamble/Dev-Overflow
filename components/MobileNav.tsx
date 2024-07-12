@@ -6,6 +6,8 @@ import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu } from "lucide-react";
+import { SignedOut } from "@clerk/nextjs";
+import { Button } from "./ui/button";
 
 const NavContent = () => {
   const pathname = usePathname();
@@ -69,6 +71,25 @@ const MobileNav = () => {
           <SheetClose asChild>
             <NavContent />
           </SheetClose>
+          <SignedOut>
+            <div className="flex flex-col gap-3">
+              <SheetClose asChild>
+                <Link href={"/sign-in"}>
+                  <Button className="small-medium btn-secondary min-h-[41px] w-full rounded-lg px-4 py-3 shadow-none">
+                    <span className="primary-text-gradient">Log In</span>
+                  </Button>
+                </Link>
+              </SheetClose>
+
+              <SheetClose asChild>
+                <Link href={"/sign-up"}>
+                  <Button className="small-medium light-border-2 btn-tertiary text-dark400_light900 min-h-[41px] w-full rounded-lg px-3 py-3 shadow-none">
+                    Sign Up
+                  </Button>
+                </Link>
+              </SheetClose>
+            </div>
+          </SignedOut>
         </div>
       </SheetContent>
     </Sheet>
