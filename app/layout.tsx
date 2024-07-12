@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
+import "../styles/prism.css";
 // const inter = Inter({ subsets: ["latin"] });
 import { Space_Grotesk } from "next/font/google";
 import { ThemeProvider } from "@/context/ThemeProvider";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -28,7 +29,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${spaceGrotesk.className} custom-scrollbar`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ClerkProvider
+          appearance={{
+            elements: {
+              formButtonPrimary: "primary-gradient",
+              footerActionLink: "primary-text-gradient hover: text-primary-500",
+            },
+          }}
+        >
+          <ThemeProvider>{children}</ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );
