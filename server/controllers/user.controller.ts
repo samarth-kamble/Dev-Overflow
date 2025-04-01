@@ -3,13 +3,18 @@ import { NextFunction, Request, Response } from "express";
 import ejs from "ejs";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import path from "path";
+import bcrypt from "bcryptjs";
 
 import { CatchAsyncError } from "../middlewares/catchAsyncErrors";
 import ErrorHandler from "../lib/ErrorHandler";
 import UserModel, { IUser } from "../models/user.models";
 import sendMail from "../lib/sendMails";
 import { sendToken } from "../lib/jwt";
-import { getUserById } from "../services/user.services";
+import {
+  getAllUsersService,
+  getUserById,
+  updateUserRoleService,
+} from "../services/user.services";
 
 // Registration User
 interface IRegistrationBody {
@@ -42,7 +47,7 @@ export const registrationUser = CatchAsyncError(
       const data = { user: { name: user.name }, activationCode };
       const html = await ejs.renderFile(
         path.join(__dirname, "../mails/activation-mail.ejs"),
-        data
+        data,
       );
 
       try {
@@ -64,7 +69,7 @@ export const registrationUser = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 // Activation Token Creation
@@ -84,7 +89,7 @@ export const createActivationToken = (user: any): IActivationToken => {
     process.env.ACTIVATION_SECRET as Secret,
     {
       expiresIn: "5m",
-    }
+    },
   );
 
   return { token, activationCode };
@@ -104,7 +109,7 @@ export const activateUser = CatchAsyncError(
 
       const newUser: { user: IUser; activationCode: string } = jwt.verify(
         activation_token,
-        process.env.ACTIVATION_SECRET as string
+        process.env.ACTIVATION_SECRET as string,
       ) as { user: IUser; activationCode: string };
 
       if (newUser.activationCode !== activation_code) {
@@ -130,7 +135,7 @@ export const activateUser = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 // Login User
@@ -164,7 +169,7 @@ export const loginUser = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 // Logout user
@@ -190,7 +195,7 @@ export const logoutUser = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 // Update Access Token
@@ -200,18 +205,18 @@ export const updateAccessToken = CatchAsyncError(
       const refresh_token = req.cookies.refresh_token as string;
       if (!refresh_token) {
         return next(
-          new ErrorHandler("Refresh token missing, please login", 401)
+          new ErrorHandler("Refresh token missing, please login", 401),
         );
       }
 
       const decoded = jwt.verify(
         refresh_token,
-        process.env.REFRESH_TOKEN as string
+        process.env.REFRESH_TOKEN as string,
       ) as JwtPayload;
 
       if (!decoded || !decoded.id) {
         return next(
-          new ErrorHandler("Invalid refresh token, please login again", 401)
+          new ErrorHandler("Invalid refresh token, please login again", 401),
         );
       }
 
@@ -219,7 +224,7 @@ export const updateAccessToken = CatchAsyncError(
       const user = await UserModel.findById(decoded.id);
       if (!user) {
         return next(
-          new ErrorHandler("User not found, please login again", 401)
+          new ErrorHandler("User not found, please login again", 401),
         );
       }
 
@@ -240,11 +245,11 @@ export const updateAccessToken = CatchAsyncError(
       return next(
         new ErrorHandler(
           "Invalid or expired refresh token, please login again",
-          401
-        )
+          401,
+        ),
       );
     }
-  }
+  },
 );
 
 // Get User Info
@@ -256,29 +261,129 @@ export const getUserInfo = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
-// Social Auth
-interface ISocialAuthBody {
-  email: string;
-  name: string;
-  avatar: string;
+// Update User Password
+interface IUpdatePassword {
+  oldPassword: string;
+  newPassword: string;
 }
 
-export const socialAuth = CatchAsyncError(
+export const updatePassword = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, name, avatar } = req.body as ISocialAuthBody;
-      const user = await UserModel.findOne({ email });
-      if (!user) {
-        const newUser = await UserModel.create({ email, name, avatar });
-        sendToken(newUser, 200, res);
-      } else {
-        sendToken(user, 200, res);
+      const { oldPassword, newPassword } = req.body as IUpdatePassword;
+
+      if (!oldPassword || !newPassword) {
+        return next(new ErrorHandler("Please enter old and new password", 400));
       }
+
+      const user = await UserModel.findById(req.user?._id).select("+password");
+
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      const isPasswordMatch = await user.comparePassword(oldPassword);
+
+      if (!isPasswordMatch) {
+        return next(new ErrorHandler("Invalid old password", 400));
+      }
+
+      // Hash the new password before saving (handled by pre-save hook)
+      user.password = newPassword;
+
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Password updated successfully",
+      });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
+);
+
+// Update User Info
+interface IUpdateUserInfo {
+  name?: string;
+  email?: string;
+}
+
+export const updateUserInfo = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { name } = req.body as IUpdateUserInfo;
+      const userId = req.user?._id;
+
+      const user = await UserModel.findById(userId);
+
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      if (name) {
+        user.name = name;
+      }
+
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: "User info updated successfully",
+        user,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  },
+);
+
+// Get All Users --only for admin
+export const getAllUsers = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      getAllUsersService(res);
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  },
+);
+
+// Update User Role --only for Admin
+export const updateUserRole = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, role } = req.body;
+
+      // Validate input
+      if (!email || !role) {
+        return next(new ErrorHandler("Email and role are required", 400));
+      }
+
+      const isUserExist = await UserModel.findOne({ email });
+
+      if (!isUserExist) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const id = isUserExist._id; // Ensure that id is a string
+
+      // Pass the stringified id to the service function
+      // @ts-ignore
+      await updateUserRoleService(res, id, role);
+
+      res.status(200).json({
+        success: true,
+        message: "User role updated successfully",
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  },
 );

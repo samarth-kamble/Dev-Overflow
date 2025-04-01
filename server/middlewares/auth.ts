@@ -12,7 +12,7 @@ export const isAuthenticated = CatchAsyncError(
 
     if (!access_token) {
       return next(
-        new ErrorHandler("Please login to access this resource", 400)
+        new ErrorHandler("Please login to access this resource", 400),
       );
     }
 
@@ -20,7 +20,7 @@ export const isAuthenticated = CatchAsyncError(
       // Verify the access token
       const decoded = jwt.verify(
         access_token,
-        process.env.ACCESS_TOKEN_SECRET || ""
+        process.env.ACCESS_TOKEN_SECRET || "",
       ) as JwtPayload;
 
       if (!decoded || !decoded.id) {
@@ -40,7 +40,7 @@ export const isAuthenticated = CatchAsyncError(
         const user = await UserModel.findById(decoded.id);
         if (!user) {
           return next(
-            new ErrorHandler("User not found. Please login again.", 400)
+            new ErrorHandler("User not found. Please login again.", 400),
           );
         }
 
@@ -50,22 +50,23 @@ export const isAuthenticated = CatchAsyncError(
     } catch (error) {
       return next(new ErrorHandler("Access token is invalid or expired", 400));
     }
-  }
+  },
 );
+
 export const authorizeRoles = (
   ...roles: Array<"farmer" | "buyer" | "seller" | "admin">
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
+    if (!req.user || !req.user.role) {
       return next(new ErrorHandler("Authentication required", 401));
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role as any)) {
       return next(
         new ErrorHandler(
           `Role: ${req.user.role} is not authorized to access this resource`,
-          403
-        )
+          403,
+        ),
       );
     }
 
