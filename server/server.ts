@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import cookieParser from "cookie-parser";
+import { v2 as cloudinary } from "cloudinary";
 
 import connectDB from "./lib/db";
 import { ErrorMiddleware } from "./middlewares/error";
@@ -43,6 +44,13 @@ app.all("*", (req: Request, res: Response, next: NextFunction) => {
   const err = new Error(`Route ${req.originalUrl} not found`) as any;
   err.statusCode = 404;
   next(err);
+});
+
+// CLOUDINARY CONFIG
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_SECRET_KEY,
 });
 
 // middleware calls

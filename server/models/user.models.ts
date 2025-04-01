@@ -7,11 +7,19 @@ const emailRegexPattern: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Define User Interface
 export interface IUser extends Document {
+  username: string;
   name: string;
   email: string;
   password: string;
-  avatar: { public_id: string; url: string };
+  avatar: {
+    public_id: string;
+    url: string;
+  };
   role: "farmer" | "buyer" | "seller" | "admin";
+  followers: mongoose.Types.ObjectId[];
+  following: mongoose.Types.ObjectId[];
+  posts: mongoose.Types.ObjectId[];
+  bookmarks: mongoose.Types.ObjectId[];
   isVerified: boolean;
   comparePassword: (password: string) => Promise<boolean>;
   signAccessToken: () => string;
@@ -20,6 +28,11 @@ export interface IUser extends Document {
 
 const userSchema: Schema<IUser> = new mongoose.Schema(
   {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     name: {
       type: String,
       required: [true, "Please enter your name"],
@@ -47,12 +60,16 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       enum: ["farmer", "buyer", "seller", "admin"],
       default: "farmer",
     },
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    posts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+    bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
     isVerified: {
       type: Boolean,
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Hash password before saving
@@ -67,7 +84,7 @@ userSchema.methods.signAccessToken = function () {
   return jwt.sign(
     { id: this._id, role: this.role },
     process.env.ACCESS_TOKEN_SECRET as string,
-    { expiresIn: "15m" } // 15 minutes expiry
+    { expiresIn: "15m" }, // 15 minutes expiry
   );
 };
 
@@ -76,13 +93,13 @@ userSchema.methods.signRefreshToken = function () {
   return jwt.sign(
     { id: this._id },
     process.env.REFRESH_TOKEN_SECRET as string,
-    { expiresIn: "7d" } // 7 days expiry
+    { expiresIn: "7d" }, // 7 days expiry
   );
 };
 
 // Compare Password
 userSchema.methods.comparePassword = async function (
-  enteredPassword: string
+  enteredPassword: string,
 ): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
