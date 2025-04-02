@@ -25,10 +25,10 @@ const MessageSchema: Schema<IMessage> = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export const MessageModel: Model<IMessage> = mongoose.model<IMessage>(
   "Message",
-  MessageSchema,
+  MessageSchema
 );
