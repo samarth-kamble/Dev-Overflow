@@ -69,7 +69,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 // Hash password before saving
@@ -84,7 +84,7 @@ userSchema.methods.signAccessToken = function () {
   return jwt.sign(
     { id: this._id, role: this.role },
     process.env.ACCESS_TOKEN_SECRET as string,
-    { expiresIn: "15m" }, // 15 minutes expiry
+    { expiresIn: "15m" } // 15 minutes expiry
   );
 };
 
@@ -93,13 +93,13 @@ userSchema.methods.signRefreshToken = function () {
   return jwt.sign(
     { id: this._id },
     process.env.REFRESH_TOKEN_SECRET as string,
-    { expiresIn: "7d" }, // 7 days expiry
+    { expiresIn: "7d" } // 7 days expiry
   );
 };
 
 // Compare Password
 userSchema.methods.comparePassword = async function (
-  enteredPassword: string,
+  enteredPassword: string
 ): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };

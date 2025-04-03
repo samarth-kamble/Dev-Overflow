@@ -10,6 +10,7 @@ import connectDB from "./lib/db";
 import { ErrorMiddleware } from "./middlewares/error";
 import userRouter from "./routes/user.routes";
 import messageRouter from "./routes/message.route";
+import postRouter from "./routes/post.route";
 
 dotenv.config(); // Load environment variables
 
@@ -71,7 +72,7 @@ const limiter = rateLimit({
 });
 
 // Define Routes
-app.use("/api/v1", userRouter, messageRouter);
+app.use("/api/v1", userRouter, messageRouter, postRouter);
 
 // Define a route for the root URL
 app.get("/", (req, res) => {
@@ -92,6 +93,7 @@ cloudinary.config({
   api_secret: process.env.CLOUD_SECRET_KEY,
 });
 
+export default cloudinary;
 // Middleware Calls
 app.use(limiter);
 app.use(ErrorMiddleware);
