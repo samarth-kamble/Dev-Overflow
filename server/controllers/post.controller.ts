@@ -246,126 +246,132 @@ export const addComment = CatchAsyncError(
   }
 );
 
-export const getCommentsOfPost = async (req: Request, res: Response) => {
-  try {
-    const postId = req.params.id;
+export const getCommentsOfPost = CatchAsyncError(
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const postId = req.params.id;
 
-    // Fetch comments and populate author details
-    const comments = await CommentModel.find({ post: postId })
-      .populate("author", "username profilePicture")
-      .sort({ createdAt: -1 }); // Sort by latest comments
+      // Fetch comments and populate author details
+      const comments = await CommentModel.find({ post: postId })
+        .populate("author", "username profilePicture")
+        .sort({ createdAt: -1 }); // Sort by latest comments
 
-    // Check if there are no comments
-    if (comments.length === 0) {
-      return res.status(404).json({
-        message: "No comments found for this post",
-        success: false,
-      });
-    }
+      // Check if there are no comments
+      if (comments.length === 0) {
+        return res.status(404).json({
+          message: "No comments found for this post",
+          success: false,
+        });
+      }
 
-    return res.status(200).json({
-      success: true,
-      comments,
-    });
-  } catch (error) {
-    console.error("Error fetching comments:", error);
-    return res.status(500).json({
-      message: "Internal server error",
-      success: false,
-    });
-  }
-};
-
-export const deletePost = async (req: Request, res: Response) => {
-  try {
-    const postId = req.params.id;
-    const authorId = req.user.id; // Assuming `req.id` is set by auth middleware
-
-    // Find the post
-    const post = await PostModel.findById(postId);
-    if (!post) {
-      return res.status(404).json({
-        message: "Post not found",
-        success: false,
-      });
-    }
-
-    // Check if the logged-in user is the owner of the post
-    if (post.author.toString() !== authorId) {
-      return res.status(403).json({
-        message: "Unauthorized: You can only delete your own posts",
-        success: false,
-      });
-    }
-
-    // Delete post from database
-    await post.deleteOne();
-
-    // Remove the post ID from the user's posts array
-    await UserModel.findByIdAndUpdate(authorId, {
-      $pull: { posts: postId },
-    });
-
-    // Delete all associated comments
-    await CommentModel.deleteMany({ post: postId });
-
-    return res.status(200).json({
-      success: true,
-      message: "Post deleted successfully",
-    });
-  } catch (error) {
-    console.error("Error deleting post:", error);
-    return res.status(500).json({
-      message: "Internal server error",
-      success: false,
-    });
-  }
-};
-
-export const bookmarkPost = async (req: Request, res: Response) => {
-  try {
-    const postId = req.params.id;
-    const userId = req.user.id; // Assuming `req.id` is set by authentication middleware
-
-    // Check if the post exists
-    const post = await PostModel.findById(postId);
-    if (!post) {
-      return res.status(404).json({
-        message: "Post not found",
-        success: false,
-      });
-    }
-
-    // Find the user
-    const user = await UserModel.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-        success: false,
-      });
-    }
-
-    // Toggle Bookmark: If exists, remove it; otherwise, add it
-    if (user.bookmarks.includes(post._id as any)) {
-      await user.updateOne({ $pull: { bookmarks: post._id } });
       return res.status(200).json({
-        type: "unsaved",
-        message: "Post removed from bookmarks",
         success: true,
+        comments,
       });
-    } else {
-      await user.updateOne({ $addToSet: { bookmarks: post._id } });
-      return res.status(200).json({
-        type: "saved",
-        message: "Post bookmarked successfully",
-        success: true,
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      return res.status(500).json({
+        message: "Internal server error",
+        success: false,
       });
     }
-  } catch (error) {
-    console.error("Error in bookmarking post:", error);
-    return res.status(500).json({
-      message: "Internal server error",
-      success: false,
-    });
   }
-};
+);
+
+export const deletePost = CatchAsyncError(
+  async (req: Request, res: Response) => {
+    try {
+      const postId = req.params.id;
+      const authorId = req.user.id; // Assuming `req.id` is set by auth middleware
+
+      // Find the post
+      const post = await PostModel.findById(postId);
+      if (!post) {
+        return res.status(404).json({
+          message: "Post not found",
+          success: false,
+        });
+      }
+
+      // Check if the logged-in user is the owner of the post
+      if (post.author.toString() !== authorId) {
+        return res.status(403).json({
+          message: "Unauthorized: You can only delete your own posts",
+          success: false,
+        });
+      }
+
+      // Delete post from database
+      await post.deleteOne();
+
+      // Remove the post ID from the user's posts array
+      await UserModel.findByIdAndUpdate(authorId, {
+        $pull: { posts: postId },
+      });
+
+      // Delete all associated comments
+      await CommentModel.deleteMany({ post: postId });
+
+      return res.status(200).json({
+        success: true,
+        message: "Post deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      return res.status(500).json({
+        message: "Internal server error",
+        success: false,
+      });
+    }
+  }
+);
+
+export const bookmarkPost = CatchAsyncError(
+  async (req: Request, res: Response) => {
+    try {
+      const postId = req.params.id;
+      const userId = req.user.id; // Assuming `req.id` is set by authentication middleware
+
+      // Check if the post exists
+      const post = await PostModel.findById(postId);
+      if (!post) {
+        return res.status(404).json({
+          message: "Post not found",
+          success: false,
+        });
+      }
+
+      // Find the user
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
+          success: false,
+        });
+      }
+
+      // Toggle Bookmark: If exists, remove it; otherwise, add it
+      if (user.bookmarks.includes(post._id as any)) {
+        await user.updateOne({ $pull: { bookmarks: post._id } });
+        return res.status(200).json({
+          type: "unsaved",
+          message: "Post removed from bookmarks",
+          success: true,
+        });
+      } else {
+        await user.updateOne({ $addToSet: { bookmarks: post._id } });
+        return res.status(200).json({
+          type: "saved",
+          message: "Post bookmarked successfully",
+          success: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error in bookmarking post:", error);
+      return res.status(500).json({
+        message: "Internal server error",
+        success: false,
+      });
+    }
+  }
+);
