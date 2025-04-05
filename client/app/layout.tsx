@@ -1,5 +1,5 @@
 import { IBM_Plex_Sans } from "next/font/google";
-
+import { Toaster } from "sonner";
 import "./globals.css";
 import { Metadata } from "next";
 import ClientProvider from "@/components/ClientProvider";
@@ -22,7 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${ibmPlexSans.className}  antialiased`}>
-        <ClientProvider>{children}</ClientProvider>
+        <ClientProvider>
+          {children}
+
+          <Toaster richColors position="bottom-left" />
+        </ClientProvider>
       </body>
     </html>
   );

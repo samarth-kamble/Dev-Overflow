@@ -6,6 +6,7 @@ import {
   loginUser,
   logoutUser,
   registrationUser,
+  resendOTP,
   updatePassword,
   updateUserInfo,
   updateUserRole,
@@ -16,6 +17,7 @@ const userRouter = express.Router();
 
 userRouter.post("/registration", registrationUser);
 userRouter.post("/activate-user", activateUser);
+userRouter.post("/resend-otp", resendOTP);
 userRouter.post("/login", loginUser);
 userRouter.get("/logout", isAuthenticated, logoutUser);
 userRouter.get("/me", isAuthenticated, getUserInfo);
@@ -26,14 +28,14 @@ userRouter.get(
   "/get-users",
   isAuthenticated,
   authorizeRoles("admin"),
-  getAllUsers,
+  getAllUsers
 );
 
 userRouter.put(
   "/update-user-role",
   isAuthenticated,
   authorizeRoles("admin"),
-  updateUserRole,
+  updateUserRole
 );
 
 export default userRouter;

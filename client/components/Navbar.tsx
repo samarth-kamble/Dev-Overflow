@@ -70,7 +70,7 @@ const Navbar = () => {
                     variant: "ghost",
                   })}
                 >
-                  Login
+                  Sign In
                 </Link>
 
                 {/* <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700 hidden sm:block" />

@@ -25,6 +25,11 @@ import {
 import Link from "next/link";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import api from "@/lib/axios";
+import { toast } from "sonner";
+import { Loader } from "lucide-react";
 
 // Zod schema for validation
 const loginSchema = z.object({
@@ -33,6 +38,10 @@ const loginSchema = z.object({
 });
 
 const LoginForm = () => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const form = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -41,9 +50,24 @@ const LoginForm = () => {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof loginSchema>) => {
-    console.log("Login Data:", data);
-    // TODO: Integrate login API call here
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await api.post("/login", data);
+      const token = res.data.token;
+      localStorage.setItem("token", token);
+
+      toast.success("Logged in successfully!"); // ✅ success toast
+      router.push("/dashboard");
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Login failed";
+      setError(message);
+      toast.error(message); // ❌ error toast
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -120,8 +144,8 @@ const LoginForm = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full">
-                Login
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <Loader>Logging in...</Loader> : "Login"}
               </Button>
             </form>
           </Form>
